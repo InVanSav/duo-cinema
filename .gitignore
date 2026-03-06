@@ -1,0 +1,69 @@
+# ====================
+# Rider IDE
+# ====================
+.idea/
+*.sln.iml
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# ====================
+# Build output
+# ====================
+bin/
+obj/
+[Bb]uild/
+out/
+
+# ====================
+# .NET
+# ====================
+*.dll
+*.exe
+*.pdb
+*.mdb
+*.cache
+*.log
+*.vspscc
+*.vssscc
+*.dbmdl
+*.bak
+*.backup
+
+# ====================
+# Rider caches
+# ====================
+*.iws
+*.iml
+*.ipr
+
+# ====================
+# Node / React / Vite
+# ====================
+node_modules/
+dist/
+build/
+.vite/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ====================
+# OS files
+# ====================
+.DS_Store
+Thumbs.db
+
+# ====================
+# Optional: JetBrains shared configs
+# ====================
+.idea/*
+!.idea/codeStyles/
+!.idea/fileTemplates/
+!.idea/dictionaries/

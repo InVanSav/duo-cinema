@@ -1,0 +1,72 @@
+.chat {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    width: 260px;
+    color: white;
+    font-family: sans-serif;
+    pointer-events: none; /* чтобы не мешало кликам по видео, кроме input */
+}
+
+.messages {
+    margin-bottom: 10px;
+}
+
+.msg {
+    background: rgba(0, 0, 0, 0.3); /* прозрачный фон */
+    padding: 4px 6px;
+    margin-bottom: 4px;
+    border-radius: 4px;
+}
+
+.input {
+    display: flex;
+    gap: 4px;
+    pointer-events: auto; /* input и кнопки кликабельны */
+    margin-top: 4px;
+}
+
+.input input {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.3);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 4px 6px;
+    border-radius: 4px;
+}
+
+.input button {
+    background: rgba(0, 0, 0, 0.3);
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.input button:hover {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.reactions {
+    position: absolute;
+    bottom: 50px;
+    left: 0;
+    pointer-events: none;
+}
+
+.reaction {
+    font-size: 28px;
+    animation: float 2s ease-out forwards;
+}
+
+@keyframes float {
+    from {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateY(-120px);
+        opacity: 0;
+    }
+}
