@@ -1,177 +1,276 @@
-import {useEffect, useRef, useState, useCallback} from "react";
+import {
+    useEffect,
+    useRef,
+    useState,
+    useCallback,
+    memo, type FC
+} from "react";
 import ChatOverlay from "./ChatOverlay";
 import "./Player.css";
-import {connection} from "../signalr.ts";
+import { connection } from "../signalr";
+
+// Константы для команд postMessage
+const RUTUBE_COMMANDS = {
+    PLAY: 'player:play',
+    PAUSE: 'player:pause',
+    SET_CURRENT_TIME: 'player:setCurrentTime',
+    GET_CURRENT_TIME: 'player:getCurrentTime',
+    MUTE: 'player:mute',
+    UNMUTE: 'player:unMute',
+    SET_VOLUME: 'player:setVolume'
+} as const;
+
+// Типы событий от плеера
+type RutubeEvent = {
+    type: string;
+    data: any;
+};
 
 export default function Player() {
-    const [video, setVideo] = useState("");
-    const [showInput, setShowInput] = useState(false);
+    const [videoEmbed, setVideoEmbed] = useState("");
+    const [showUrlInput, setShowUrlInput] = useState(false);
     const [showChatInput, setShowChatInput] = useState(true);
-    const [currentTime, setCurrentTime] = useState(0);
+    const [isPlayerReady, setIsPlayerReady] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
+
     const iframeRef = useRef<HTMLIFrameElement | null>(null);
-    const playerReadyRef = useRef<boolean>(false);
-    const ignoreNextEventRef = useRef<boolean>(false);
+    const lastSyncTimeRef = useRef<number>(0);
+    const pendingSeekRef = useRef<number | null>(null);
+    const syncIntervalRef = useRef<number>(0);
+    const isLocalActionRef = useRef<boolean>(false);
 
-    const toEmbed = useCallback((url: string) => {
-        const rutubeMatch = url.match(/rutube\.ru\/video\/([\w\d]+)/);
-        if (rutubeMatch) {
-            return `https://rutube.ru/play/embed/${rutubeMatch[1]}?api=1`;
+    // Функция отправки команды в плеер
+    const sendCommand = useCallback((type: string, data: any = {}) => {
+        if (!iframeRef.current?.contentWindow) {
+            console.warn('Плеер еще не инициализирован');
+            return;
         }
-        return url;
+
+        try {
+            iframeRef.current.contentWindow.postMessage(
+                JSON.stringify({ type, data }),
+                'https://rutube.ru'
+            );
+        } catch (error) {
+            console.error('Ошибка отправки команды в плеер:', error);
+        }
     }, []);
 
-    const sendRutubeCommand = useCallback((command: string, value?: any) => {
-        if (iframeRef.current?.contentWindow) {
-            const message = {
-                type: 'player',
-                command: command,
-                value: value
-            };
-            iframeRef.current.contentWindow.postMessage(JSON.stringify(message), 'https://rutube.ru');
-        }
+    // Преобразование URL в embed формат
+    const toEmbedUrl = useCallback((url: string) => {
+        const match = url.match(/rutube\.ru\/video\/([\w\d]+)/);
+        return match ? `https://rutube.ru/play/embed/${match[1]}` : url;
     }, []);
 
-    // Обработка сообщений от Rutube
+    // Обработка команд воспроизведения
+    const handlePlay = useCallback((time: number) => {
+        if (!isPlayerReady) return;
+
+        if (Math.abs(time - lastSyncTimeRef.current) > 2) {
+            sendCommand(RUTUBE_COMMANDS.SET_CURRENT_TIME, { time });
+            setTimeout(() => {
+                sendCommand(RUTUBE_COMMANDS.PLAY);
+                setIsPlaying(true);
+            }, 100);
+        } else {
+            sendCommand(RUTUBE_COMMANDS.PLAY);
+            setIsPlaying(true);
+        }
+
+        lastSyncTimeRef.current = time;
+    }, [isPlayerReady, sendCommand]);
+
+    const handlePause = useCallback((time: number) => {
+        if (!isPlayerReady) return;
+
+        if (Math.abs(time - lastSyncTimeRef.current) > 2) {
+            sendCommand(RUTUBE_COMMANDS.SET_CURRENT_TIME, { time });
+            setTimeout(() => {
+                sendCommand(RUTUBE_COMMANDS.PAUSE);
+                setIsPlaying(false);
+            }, 100);
+        } else {
+            sendCommand(RUTUBE_COMMANDS.PAUSE);
+            setIsPlaying(false);
+        }
+
+        lastSyncTimeRef.current = time;
+    }, [isPlayerReady, sendCommand]);
+
+    const handleSeek = useCallback((time: number) => {
+        if (!isPlayerReady) return;
+
+        pendingSeekRef.current = time;
+        sendCommand(RUTUBE_COMMANDS.SET_CURRENT_TIME, { time });
+        lastSyncTimeRef.current = time;
+    }, [isPlayerReady, sendCommand]);
+
+    // Функции для отправки событий на сервер
+    const sendPlayToServer = useCallback((time: number) => {
+        console.log('Отправка Play на сервер:', time);
+        connection.invoke("Play", time)
+            .catch(err => console.error('Ошибка отправки Play:', err));
+    }, []);
+
+    const sendPauseToServer = useCallback((time: number) => {
+        console.log('Отправка Pause на сервер:', time);
+        connection.invoke("Pause", time)
+            .catch(err => console.error('Ошибка отправки Pause:', err));
+    }, []);
+
+    const sendSeekToServer = useCallback((time: number) => {
+        console.log('Отправка Seek на сервер:', time);
+        connection.invoke("Seek", time)
+            .catch(err => console.error('Ошибка отправки Seek:', err));
+    }, []);
+
+    // Обработка событий от плеера
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
             if (event.origin !== 'https://rutube.ru') return;
 
             try {
-                const data = JSON.parse(event.data);
+                const message: RutubeEvent = JSON.parse(event.data);
 
-                if (data.type === 'player:ready') {
-                    playerReadyRef.current = true;
-                }
+                switch (message.type) {
+                    case 'player:ready':
+                        console.log('Плеер готов');
+                        setIsPlayerReady(true);
+                        sendCommand(RUTUBE_COMMANDS.SET_VOLUME, { volume: 1 });
+                        break;
 
-                if (data.type === 'player:currentTime' && data.data) {
-                    const time = data.data.time || data.data.currentTime;
-                    if (time !== undefined) {
-                        setCurrentTime(time);
-                    }
-                }
+                    case 'player:changeState':
+                        // Получаем текущее время из плеера
+                        sendCommand(RUTUBE_COMMANDS.GET_CURRENT_TIME, {});
 
-                if (data.type === 'player:changeState' && data.data) {
-                    const newState = data.data.state || data.data.status;
-
-                    if (newState === 'play' || newState === 'playing') {
-                        setIsPlaying(true);
-                        if (!ignoreNextEventRef.current) {
-                            connection.invoke('Play', currentTime).catch(() => {});
+                        if (message.data.state === 'playing') {
+                            setIsPlaying(true);
+                            // Если это не наше локальное действие (не от сервера)
+                            if (!isLocalActionRef.current) {
+                                // Отправляем событие на сервер
+                                sendPlayToServer(lastSyncTimeRef.current);
+                            }
+                        } else if (message.data.state === 'pause') {
+                            setIsPlaying(false);
+                            // Если это не наше локальное действие (не от сервера)
+                            if (!isLocalActionRef.current) {
+                                // Отправляем событие на сервер
+                                sendPauseToServer(lastSyncTimeRef.current);
+                            }
+                        } else if (message.data.state === 'completed') {
+                            setIsPlaying(false);
+                            // Видео закончилось - отправляем паузу на сервер
+                            sendPauseToServer(0);
                         }
-                    }
-                    else if (newState === 'pause' || newState === 'paused') {
-                        setIsPlaying(false);
-                        if (!ignoreNextEventRef.current) {
-                            connection.invoke('Pause', currentTime).catch(() => {});
+                        break;
+
+                    case 'player:currentTime':
+                        const currentTime = message.data.time;
+                        lastSyncTimeRef.current = currentTime;
+
+                        if (pendingSeekRef.current !== null) {
+                            if (Math.abs(currentTime - pendingSeekRef.current) < 1) {
+                                // Seek выполнен, отправляем на сервер
+                                sendSeekToServer(pendingSeekRef.current);
+                                pendingSeekRef.current = null;
+                            }
                         }
-                    }
-
-                    if (ignoreNextEventRef.current) {
-                        ignoreNextEventRef.current = false;
-                    }
+                        break;
                 }
-
-                if (data.type === 'player:playStart') {
-                    setIsPlaying(true);
-                    if (!ignoreNextEventRef.current) {
-                        connection.invoke('Play', currentTime).catch(() => {});
-                    } else {
-                        ignoreNextEventRef.current = false;
-                    }
-                }
-
-            } catch (e) {}
+            } catch (error) {
+                // Игнорируем не-JSON сообщения
+            }
         };
 
         window.addEventListener('message', handleMessage);
         return () => window.removeEventListener('message', handleMessage);
-    }, [currentTime]);
+    }, [sendCommand, sendPlayToServer, sendPauseToServer, sendSeekToServer]);
 
-    // Получение команд от сервера
+    // Периодическая синхронизация времени
+    useEffect(() => {
+        if (!isPlayerReady || !isPlaying) return;
+
+        syncIntervalRef.current = window.setInterval(() => {
+            sendCommand(RUTUBE_COMMANDS.GET_CURRENT_TIME, {});
+        }, 5000);
+
+        return () => {
+            if (syncIntervalRef.current) {
+                clearInterval(syncIntervalRef.current);
+            }
+        };
+    }, [isPlayerReady, isPlaying, sendCommand]);
+
+    // Подписка на SignalR события
     useEffect(() => {
         connection.on("Video", (url: string) => {
-            setVideo(toEmbed(url));
-            setCurrentTime(0);
+            const embed = toEmbedUrl(url);
+            setVideoEmbed(embed);
+            setIsPlayerReady(false);
             setIsPlaying(false);
-            playerReadyRef.current = false;
-            ignoreNextEventRef.current = false;
+            lastSyncTimeRef.current = 0;
         });
 
         connection.on("Play", (time: number) => {
-            if (!playerReadyRef.current) return;
-
-            ignoreNextEventRef.current = true;
-
-            // Сначала перематываем на нужное время
-            sendRutubeCommand('seek', time);
-
-            // Потом запускаем воспроизведение
+            // Устанавливаем флаг, что это действие от сервера
+            isLocalActionRef.current = true;
+            handlePlay(time);
+            // Сбрасываем флаг через небольшую задержку
             setTimeout(() => {
-                sendRutubeCommand('play');
-                setTimeout(() => {
-                    ignoreNextEventRef.current = false;
-                }, 500);
-            }, 200);
+                isLocalActionRef.current = false;
+            }, 500);
         });
 
         connection.on("Pause", (time: number) => {
-            if (!playerReadyRef.current) return;
-
-            ignoreNextEventRef.current = true;
-
-            // Сначала перематываем на нужное время
-            sendRutubeCommand('seek', time);
-
-            // Потом ставим на паузу
+            // Устанавливаем флаг, что это действие от сервера
+            isLocalActionRef.current = true;
+            handlePause(time);
+            // Сбрасываем флаг через небольшую задержку
             setTimeout(() => {
-                sendRutubeCommand('pause');
-                setTimeout(() => {
-                    ignoreNextEventRef.current = false;
-                }, 500);
-            }, 200);
+                isLocalActionRef.current = false;
+            }, 500);
+        });
+
+        connection.on("Seek", (time: number) => {
+            // Устанавливаем флаг, что это действие от сервера
+            isLocalActionRef.current = true;
+            handleSeek(time);
+            // Сбрасываем флаг через небольшую задержку
+            setTimeout(() => {
+                isLocalActionRef.current = false;
+            }, 500);
         });
 
         return () => {
             connection.off("Video");
             connection.off("Play");
             connection.off("Pause");
+            connection.off("Seek");
         };
-    }, [currentTime, sendRutubeCommand, toEmbed]);
+    }, [toEmbedUrl, handlePlay, handlePause, handleSeek]);
 
-    // Периодическая синхронизация времени
-    useEffect(() => {
-        if (!video || !playerReadyRef.current || !isPlaying) return;
-
-        const timeInterval = setInterval(() => {
-            sendRutubeCommand('getCurrentTime');
-        }, 10000);
-
-        return () => clearInterval(timeInterval);
-    }, [video, isPlaying, sendRutubeCommand]);
-
-    const loadVideo = (url: string) => {
-        connection.invoke("Video", url).catch(() => {});
-    };
+    // Загрузка нового видео
+    const loadVideo = useCallback((url: string) => {
+        connection.invoke("Video", url).catch(console.error);
+    }, []);
 
     return (
         <div className="player">
-            {video && (
+            {videoEmbed && (
                 <iframe
                     ref={iframeRef}
                     className="video"
-                    src={video}
+                    src={`${videoEmbed}?autoplay=0`}
                     allow="autoplay; fullscreen; picture-in-picture"
                     allowFullScreen
-                    title="video-player"
+                    title="rutube-player"
                 />
             )}
-            <button
-                className="toggleInput"
-                onClick={() => setShowInput(v => !v)}
-            >
+
+            <button className="toggleInput" onClick={() => setShowUrlInput(v => !v)}>
                 🎬
             </button>
+
             <button
                 className="toggleInput"
                 style={{ top: "110px" }}
@@ -180,33 +279,32 @@ export default function Player() {
                 💬
             </button>
 
-            {showInput && (
-                <VideoInput loadVideo={loadVideo}/>
-            )}
+            {showUrlInput && <VideoInput loadVideo={loadVideo} />}
+
             <ChatOverlay showChatInput={showChatInput} />
         </div>
     );
 }
 
-function VideoInput({loadVideo}: { loadVideo: (u: string) => void }) {
-    const [url, setUrl] = useState("");
+const VideoInput: FC<{ loadVideo: (url: string) => void }> = memo(
+    ({ loadVideo }) => {
+        const [text, setText] = useState("");
 
-    const submit = () => {
-        if (!url) return;
-        loadVideo(url);
-        setUrl("");
-    };
+        const submit = () => {
+            if (!text) return;
+            loadVideo(text);
+            setText("");
+        };
 
-    return (
-        <div className="urlInput">
-            <input
-                placeholder="Rutube ссылка"
-                value={url}
-                onChange={e => setUrl(e.target.value)}
-            />
-            <button onClick={submit}>
-                load
-            </button>
-        </div>
-    );
-}
+        return (
+            <div className="urlInput">
+                <input
+                    value={text}
+                    onChange={e => setText(e.target.value)}
+                    placeholder="Rutube ссылка"
+                />
+                <button onClick={submit}>Load</button>
+            </div>
+        );
+    }
+);
