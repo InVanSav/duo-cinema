@@ -1,4 +1,8 @@
 twenty-four-frames.ru {
     reverse_proxy frontend:80
-    reverse_proxy /watch backend:5146
+    reverse_proxy /watch* backend:5146 {
+        transport http {
+            versions h2c 1.1
+        }
+    }
 }
