@@ -13,7 +13,6 @@ type Reaction = {
 }
 
 export default function ChatOverlay({ showChatInput }: { showChatInput: boolean }) {
-
     const [messages, setMessages] = useState<Msg[]>([]);
     const [reactions, setReactions] = useState<Reaction[]>([]);
     const [text, setText] = useState("");
@@ -21,8 +20,10 @@ export default function ChatOverlay({ showChatInput }: { showChatInput: boolean 
     useEffect(() => {
         connection.on("Chat", (msg: string) => {
             const id = Date.now();
-            setMessages(m => [...m, { text: msg, id }]);
-            setTimeout(() => setMessages(m => m.filter(x => x.id !== id)), 5000);
+            setMessages(m => {
+                const newMessages = [...m, { text: msg, id }];
+                return newMessages.slice(-5);
+            });
         });
 
         connection.on("Reaction", (emoji: string) => {
@@ -69,7 +70,7 @@ export default function ChatOverlay({ showChatInput }: { showChatInput: boolean 
                         <button onClick={send}>send</button>
                     </div>
                     <div className="emoji-buttons">
-                        {["❤️","😂","🔥","💩","😭"].map(e => (
+                        {["❤️", "😂", "🔥", "💩", "😭"].map(e => (
                             <button key={e} onClick={() => connection.invoke("Reaction", e)}>
                                 {e}
                             </button>

@@ -5,7 +5,6 @@
     width: 260px;
     color: white;
     font-family: sans-serif;
-    pointer-events: none; /* чтобы не мешало кликам по видео, кроме input */
 }
 
 .messages {
@@ -13,7 +12,7 @@
 }
 
 .msg {
-    background: rgba(0, 0, 0, 0.3); /* прозрачный фон */
+    background: rgba(0, 0, 0, 0);
     padding: 4px 6px;
     margin-bottom: 4px;
     border-radius: 4px;
