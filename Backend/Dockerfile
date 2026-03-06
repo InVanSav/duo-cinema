@@ -14,4 +14,4 @@ COPY --from=build /app/out .
 
 EXPOSE 5146
 
-ENTRYPOINT ["dotnet", "Backend.dll"]
+ENTRYPOINT ["dotnet", "DuoCinema.dll"]

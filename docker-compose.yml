@@ -25,7 +25,7 @@ services:
     build: ./Frontend
     container_name: frontend
     expose:
-      - "5173"
+      - "80"
 
 volumes:
   caddy_data:
