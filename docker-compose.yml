@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  caddy:
+    image: caddy:2
+    container_name: caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
+  backend:
+    build: ./Backend
+    container_name: backend
+    expose:
+      - "5146"
+
+  frontend:
+    build: ./Frontend
+    container_name: frontend
+    expose:
+      - "5173"
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,4 @@
+yourdomain.com {
+    reverse_proxy frontend:5173
+    reverse_proxy /watch backend:5146
+}
