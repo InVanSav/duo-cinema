@@ -1,6 +1,6 @@
 import {useEffect, useState} from "react";
 import ChatOverlay from "./ChatOverlay";
-import "./player.css";
+import "./Player.css";
 import {connection} from "../signalr.ts";
 
 export default function Player() {
