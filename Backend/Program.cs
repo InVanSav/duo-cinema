@@ -7,7 +7,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowReactDevServer", policy =>
     {
         policy
-            .WithOrigins("http://frontend:5173")
+            .WithOrigins("https://twenty-four-frames.ru")
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
