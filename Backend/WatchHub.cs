@@ -13,6 +13,9 @@ public class WatchHub : Hub
     public async Task Pause(double time)
         => await Clients.All.SendAsync("Pause", time);
 
+    public async Task Seek(double time)
+        => await Clients.All.SendAsync("Seek", time);
+
     public async Task Chat(string msg)
         => await Clients.All.SendAsync("Chat", msg);
 
