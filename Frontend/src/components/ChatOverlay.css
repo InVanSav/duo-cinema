@@ -1,6 +1,6 @@
 .chat {
     position: absolute;
-    bottom: 20px;
+    bottom: 80px;
     left: 20px;
     width: 260px;
     color: white;
@@ -22,8 +22,6 @@
 .input {
     display: flex;
     gap: 4px;
-    pointer-events: auto; /* input и кнопки кликабельны */
-    margin-top: 4px;
 }
 
 .input input {
@@ -58,6 +56,27 @@
 .reaction {
     font-size: 28px;
     animation: float 2s ease-out forwards;
+}
+
+.input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    pointer-events: auto;
+    width: 100%;
+}
+
+.emoji-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.emoji-buttons button {
+    flex: 1 1 auto;
+    min-width: 36px;
+    font-size: 20px;
+    padding: 4px 6px;
 }
 
 @keyframes float {

@@ -44,7 +44,7 @@ export default function Player() {
             </button>
             <button
                 className="toggleInput"
-                style={{ top: "90px" }}  // смещаем вниз на 40px от первой
+                style={{ top: "110px" }}
                 onClick={() => setShowChatInput(v => !v)}
             >
                 💬

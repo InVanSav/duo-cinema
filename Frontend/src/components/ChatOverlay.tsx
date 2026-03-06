@@ -59,18 +59,22 @@ export default function ChatOverlay({ showChatInput }: { showChatInput: boolean 
             </div>
 
             {showChatInput && (
-                <div className="input">
-                    <input
-                        value={text}
-                        onChange={e => setText(e.target.value)}
-                        placeholder="Type a message..."
-                    />
-                    <button onClick={send}>send</button>
-                    <button onClick={() => connection.invoke("Reaction","❤️")}>❤️</button>
-                    <button onClick={() => connection.invoke("Reaction","😂")}>😂</button>
-                    <button onClick={() => connection.invoke("Reaction","🔥")}>🔥</button>
-                    <button onClick={() => connection.invoke("Reaction","💩")}>💩</button>
-                    <button onClick={() => connection.invoke("Reaction","😭")}>😭</button>
+                <div className="input-wrapper">
+                    <div className="input">
+                        <input
+                            value={text}
+                            onChange={e => setText(e.target.value)}
+                            placeholder="Type a message..."
+                        />
+                        <button onClick={send}>send</button>
+                    </div>
+                    <div className="emoji-buttons">
+                        {["❤️","😂","🔥","💩","😭"].map(e => (
+                            <button key={e} onClick={() => connection.invoke("Reaction", e)}>
+                                {e}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             )}
 
