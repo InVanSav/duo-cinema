@@ -81,8 +81,8 @@ export default function Player() {
 
             {showControls && (
                 <div className="videoControls">
-                    <button onClick={handlePlay}>▶ Play</button>
-                    <button onClick={handlePause}>⏸ Pause</button>
+                    <button onClick={handlePlay}>▶</button>
+                    <button onClick={handlePause}>⏸</button>
                     <button onClick={() => handleSeek(-10)}>⏮</button>
                     <button onClick={() => handleSeek(+10)}>⏭</button>
                 </div>
