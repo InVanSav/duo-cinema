@@ -22,7 +22,14 @@ export default function ChatOverlay({ showChatInput }: { showChatInput: boolean 
             const id = Date.now();
             setMessages(m => {
                 const newMessages = [...m, { text: msg, id }];
-                return newMessages.slice(-5);
+
+                setTimeout(() => {
+                    setMessages(current =>
+                        current.filter(message => message.id !== id)
+                    );
+                }, 10000);
+
+                return newMessages;
             });
         });
 
@@ -70,7 +77,7 @@ export default function ChatOverlay({ showChatInput }: { showChatInput: boolean 
                         <button onClick={send}>send</button>
                     </div>
                     <div className="emoji-buttons">
-                        {["❤️", "😂", "🔥", "💩", "😭"].map(e => (
+                        {["❤️", "😂", "🔥", "💩", "😭", "🤔", "😳", "😡"].map(e => (
                             <button key={e} onClick={() => connection.invoke("Reaction", e)}>
                                 {e}
                             </button>
