@@ -22,8 +22,8 @@ export default function Player() {
     // Подписка на SignalR
     useEffect(() => {
         connection.on("Video", (url: string) => setVideoEmbed(toEmbedUrl(url)));
-        connection.on("Play", () => sendCommand({ type: "player:play" }));
-        connection.on("Pause", () => sendCommand({ type: "player:pause" }));
+        connection.on("Play", () => sendCommand({ type: "player:play", data: {} }));
+        connection.on("Pause", () => sendCommand({ type: "player:pause", data: {} }));
         connection.on("Seek", (time: number) =>
             sendCommand({ type: "player:relativelySeek", data: { time } })
         );
