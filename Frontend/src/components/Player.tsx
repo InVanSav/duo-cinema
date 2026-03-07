@@ -1,10 +1,4 @@
-import {
-    useEffect,
-    useRef,
-    useState,
-    useCallback,
-    memo, type FC
-} from "react";
+import { useEffect, useRef, useState, useCallback, memo, type FC } from "react";
 import ChatOverlay from "./ChatOverlay";
 import "./Player.css";
 import { connection } from "../signalr";
@@ -13,27 +7,41 @@ export default function Player() {
     const [videoEmbed, setVideoEmbed] = useState("");
     const [showUrlInput, setShowUrlInput] = useState(false);
     const [showChatInput, setShowChatInput] = useState(true);
-
+    const [showControls, setShowControls] = useState(true);
     const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
-    // Преобразование URL в embed формат
     const toEmbedUrl = useCallback((url: string) => {
         const match = url.match(/rutube\.ru\/video\/([\w\d]+)/);
         return match ? `https://rutube.ru/play/embed/${match[1]}` : url;
     }, []);
 
+    const sendCommand = useCallback((command: object) => {
+        iframeRef.current?.contentWindow?.postMessage(JSON.stringify(command), "*");
+    }, []);
+
+    // Подписка на SignalR
     useEffect(() => {
-        connection.on("Video", (url: string) => {
-            const embed = toEmbedUrl(url);
-            setVideoEmbed(embed);
-        });
+        connection.on("Video", (url: string) => setVideoEmbed(toEmbedUrl(url)));
+        connection.on("Play", () => sendCommand({ type: "player:play" }));
+        connection.on("Pause", () => sendCommand({ type: "player:pause" }));
+        connection.on("Seek", (time: number) =>
+            sendCommand({ type: "player:relativelySeek", data: { time } })
+        );
 
         return () => {
             connection.off("Video");
+            connection.off("Play");
+            connection.off("Pause");
+            connection.off("Seek");
         };
-    }, [toEmbedUrl]);
+    }, [toEmbedUrl, sendCommand]);
 
-    // Загрузка нового видео
+    // Локальные кнопки для синхронизации
+    const handlePlay = () => connection.invoke("Play").catch(console.error);
+    const handlePause = () => connection.invoke("Pause").catch(console.error);
+    const handleSeek = (time: number) => connection.invoke("Seek", time).catch(console.error);
+
+    // Отправка нового видео
     const loadVideo = useCallback((url: string) => {
         connection.invoke("Video", url).catch(console.error);
     }, []);
@@ -62,6 +70,23 @@ export default function Player() {
             >
                 💬
             </button>
+
+            <button
+                className="toggleInput"
+                style={{ top: "150px" }}
+                onClick={() => setShowControls(v => !v)}
+            >
+                🛠
+            </button>
+
+            {showControls && (
+                <div className="videoControls">
+                    <button onClick={handlePlay}>▶ Play</button>
+                    <button onClick={handlePause}>⏸ Pause</button>
+                    <button onClick={() => handleSeek(-10)}>⏮</button>
+                    <button onClick={() => handleSeek(+10)}>⏭</button>
+                </div>
+            )}
 
             {showUrlInput && <VideoInput loadVideo={loadVideo} />}
 

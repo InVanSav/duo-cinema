@@ -36,3 +36,27 @@
 .toggleInput:hover {
     background: rgba(0, 0, 0, 0.8);
 }
+
+.videoControls {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+}
+
+.videoControls button {
+    padding: 6px 12px;
+    font-size: 16px;
+    border-radius: 6px;
+    border: none;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    cursor: pointer;
+}
+
+.videoControls button:hover {
+    background: rgba(0,0,0,0.8);
+}
