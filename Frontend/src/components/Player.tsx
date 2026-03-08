@@ -8,6 +8,7 @@ export default function Player() {
     const [showUrlInput, setShowUrlInput] = useState(false);
     const [showChatInput, setShowChatInput] = useState(true);
     const [showControls, setShowControls] = useState(true);
+    const [currentTime, setCurrentTime] = useState(0);
     const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
     const currentTimeRef = useRef<number>(0);
@@ -40,6 +41,10 @@ export default function Player() {
         return `${minutes}:${secs.toString().padStart(2, '0')}`;
     };
 
+    const setVideoTime = useCallback((time: number) => {
+        sendCommand({ type: "player:setCurrentTime", data: { time } });
+    }, [sendCommand]);
+
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
             try {
@@ -47,6 +52,7 @@ export default function Player() {
 
                 if (message.type === 'player:currentTime') {
                     currentTimeRef.current = message.data.time;
+                    setCurrentTime(message.data.time);
                 }
             } catch (e) {
                 // Игнорируем сообщения не в JSON формате
@@ -63,16 +69,18 @@ export default function Player() {
             currentTimeRef.current = 0;
         });
 
-        connection.on("Play", () => {
+        connection.on("Play", (time: number) => {
+            setVideoTime(time);
             sendCommand({ type: "player:play", data: {} });
         });
 
-        connection.on("Pause", () => {
+        connection.on("Pause", (time: number) => {
+            setVideoTime(time);
             sendCommand({ type: "player:pause", data: {} });
         });
 
         connection.on("Seek", (time: number) => {
-            sendCommand({ type: "player:relativelySeek", data: { time } });
+            setVideoTime(time);
         });
 
         return () => {
@@ -84,22 +92,28 @@ export default function Player() {
     }, [toEmbedUrl, sendCommand]);
 
     const handlePlay = () => {
-        connection.invoke("Play").catch(console.error);
+        const time = currentTimeRef.current;
+        connection.invoke("Play", time).catch(console.error);
         sendTimeToChat();
     };
 
     const handlePause = () => {
-        connection.invoke("Pause").catch(console.error);
+        const time = currentTimeRef.current;
+        connection.invoke("Pause", time).catch(console.error);
         sendTimeToChat();
     };
 
-    const handleSeek = (time: number) => {
-        connection.invoke("Seek", time).catch(console.error);
-        currentTimeRef.current += time;
+    const handleSeek = (delta: number) => {
+        const newTime = Math.max(0, currentTimeRef.current + delta);
+        connection.invoke("Seek", newTime).catch(console.error);
+        currentTimeRef.current = newTime;
         sendTimeToChat();
     };
 
     const handleSendCurrentTime = () => {
+        const time = currentTimeRef.current;
+        // Отправляем команду синхронизации времени всем
+        connection.invoke("Seek", time).catch(console.error);
         sendTimeToChat();
     };
 
@@ -144,7 +158,6 @@ export default function Player() {
                 className="toggleInput"
                 style={{ top: "190px"}}
                 onClick={handleSendCurrentTime}
-                title="Отправить текущее время в чат"
             >
                 ⏱️
             </button>
@@ -162,7 +175,7 @@ export default function Player() {
 
             <ChatOverlay showChatInput={showChatInput} />
 
-            {/*{videoEmbed && (<div className="timeDisplay">{formatTime(currentTime)}</div>)}*/}
+            {videoEmbed && (<div className="timeDisplay">{formatTime(currentTime)}</div>)}
         </div>
     );
 }
