@@ -76,6 +76,7 @@
     min-width: 36px;
     font-size: 20px;
     padding: 4px 6px;
+    border: none;
 }
 
 @keyframes float {

@@ -83,7 +83,7 @@ export default function ChatOverlay({ showChatInput }: { showChatInput: boolean 
                         <button onClick={send}>send</button>
                     </div>
                     <div className="emoji-buttons">
-                        {["❤️", "😂", "🔥", "💩", "😭", "🤔", "😳", "😡"].map(e => (
+                        {["❤️", "😂", "🔥", "💩", "😭", "🤔", "😳", "😡", "😐", "😒"].map(e => (
                             <button key={e} onClick={() => connection.invoke("Reaction", e)}>
                                 {e}
                             </button>
