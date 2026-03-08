@@ -8,7 +8,7 @@ public class WatchHub : Hub
         => await Clients.All.SendAsync("Video", url);
 
     public async Task Play(double time)
-        => await Clients.All.SendAsync("Play", time);
+        => await Clients.Others.SendAsync("Play", time);
 
     public async Task Pause(double time)
         => await Clients.All.SendAsync("Pause", time);
