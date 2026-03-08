@@ -12,7 +12,7 @@ export default function Player() {
     const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
     const currentTimeRef = useRef<number>(0);
-    const isMyPlayRef = useRef<boolean>(false);
+    const ignoreNextPlayingRef = useRef(false);
 
     const toEmbedUrl = useCallback((url: string) => {
         const match = url.match(/rutube\.ru\/video\/([\w\d]+)/);
@@ -57,7 +57,11 @@ export default function Player() {
                 } else if (message.type === 'player:changeState') {
                     switch (message.data.state) {
                         case 'playing':
-                            isMyPlayRef.current = true;
+                            if (ignoreNextPlayingRef.current) {
+                                ignoreNextPlayingRef.current = false;
+                                return;
+                            }
+
                             handlePlay()
                             break;
                     }
@@ -78,10 +82,7 @@ export default function Player() {
         });
 
         connection.on("Play", (time: number) => {
-            if (isMyPlayRef.current) {
-                isMyPlayRef.current = false;
-                return;
-            }
+            ignoreNextPlayingRef.current = true;
 
             setVideoTime(time);
             sendCommand({ type: "player:play", data: {} });
