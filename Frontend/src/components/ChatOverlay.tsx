@@ -73,6 +73,12 @@ export default function ChatOverlay({ showChatInput }: { showChatInput: boolean 
                             value={text}
                             onChange={e => setText(e.target.value)}
                             placeholder="Type a message..."
+                            onKeyDown={e => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    send();
+                                }
+                            }}
                         />
                         <button onClick={send}>send</button>
                     </div>
