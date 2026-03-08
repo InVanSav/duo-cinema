@@ -53,6 +53,12 @@ export default function Player() {
                 if (message.type === 'player:currentTime') {
                     currentTimeRef.current = message.data.time;
                     setCurrentTime(message.data.time);
+                } else if (message.type === 'player:changeState') {
+                    switch (message.data.state) {
+                        case 'playing':
+                            handlePlay()
+                            break;
+                    }
                 }
             } catch (e) {
                 // Игнорируем сообщения не в JSON формате
