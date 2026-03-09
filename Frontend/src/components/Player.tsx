@@ -4,10 +4,13 @@ import "./Player.css";
 import {connection} from "../signalr";
 
 export default function Player() {
-    const [videoEmbed, setVideoEmbed] = useState("");
+    const [videoEmbed, setVideoEmbed] = useState(() => {
+        const savedUrl = localStorage.getItem("VIDEO_URL_STORAGE_KEY");
+        return savedUrl ? savedUrl : "";
+    });
     const [showUrlInput, setShowUrlInput] = useState(false);
     const [showChatInput, setShowChatInput] = useState(true);
-    const [showControls, setShowControls] = useState(true);
+    const [showControls, setShowControls] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
@@ -77,7 +80,9 @@ export default function Player() {
 
     useEffect(() => {
         connection.on("Video", (url: string) => {
-            setVideoEmbed(toEmbedUrl(url));
+            const embedUrl = toEmbedUrl(url);
+            setVideoEmbed(embedUrl);
+            localStorage.setItem("VIDEO_URL_STORAGE_KEY", embedUrl);
             currentTimeRef.current = 0;
         });
 
